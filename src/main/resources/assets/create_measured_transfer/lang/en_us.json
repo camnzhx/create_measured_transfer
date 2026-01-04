@@ -1,5 +1,3 @@
 {
-  "itemGroup.create_measured_transfer": "Example Mod Tab",
-  "block.create_measured_transfer.example_block": "Example Block",
-  "item.create_measured_transfer.example_item": "Example Item"
+  "item.create_measured_transfer.metering_barrel": "Metering Barrel"
 }
