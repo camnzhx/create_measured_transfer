@@ -1,9 +1,10 @@
-package com.caten.create_measured_transfer.data_component;
+package com.caten.create_measured_transfer;
 
-import com.caten.create_measured_transfer.Create_measured_transfer;
+import com.caten.create_measured_transfer.data_component.MeteringBarrelData;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.function.UnaryOperator;
