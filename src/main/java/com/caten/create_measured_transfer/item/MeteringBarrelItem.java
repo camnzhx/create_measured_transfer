@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.BucketPickup;
+import net.minecraft.world.level.block.LiquidBlockContainer;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.FluidState;
@@ -40,10 +41,9 @@ public class MeteringBarrelItem extends Item {
             LOGGER.warning("MeteringBarrelData is null!");
             return InteractionResultHolder.fail(itemStack);
         }
-        BlockHitResult blockhitresult = null;
 
         //获取玩家视角的方块信息
-        blockhitresult = getPlayerPOVHitResult(level, player, ClipContext.Fluid.SOURCE_ONLY);
+        BlockHitResult blockhitresult = getPlayerPOVHitResult(level, player, ClipContext.Fluid.SOURCE_ONLY);
 
         //判断视线朝向结果
         if (blockhitresult.getType() == HitResult.Type.MISS) {          //没有命中任何方块,打开物品界面
@@ -57,9 +57,7 @@ public class MeteringBarrelItem extends Item {
 
             BlockState blockState = level.getBlockState(blockpos);
             FluidState fluidState = blockState.getFluidState();
-            BucketPickup bucketpickup = null;
-            int c = 0;
-
+            
             if (barrelData.isEmpty()) {//桶内没有液体，尝试拾取方块内的液体
                 if(blockState.getBlock() instanceof BucketPickup) {
                     itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.setFluid(fluidState.getType(), A_BUCKET_VOLUME));
@@ -76,16 +74,18 @@ public class MeteringBarrelItem extends Item {
                         return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
                     } else if (fluidAmount > A_BUCKET_VOLUME) {
                         itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.setAmount(fluidAmount - A_BUCKET_VOLUME));
-
+                        placeFluid(level, player, blockpos, blockhitresult, barrelData);
+                        return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
                     } else if (fluidAmount == A_BUCKET_VOLUME) {
                         itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.keepCapacityEmpty());
-                        c = 2;
-
+                        placeFluid(level, player, blockpos, blockhitresult, barrelData);
+                        return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
                     }
                 } else {
                     if (fluidAmount >= A_BUCKET_VOLUME) {
                         itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.setAmount(fluidAmount - A_BUCKET_VOLUME));
-                        c = 2;
+                        placeFluid(level, player, blockpos, blockhitresult, barrelData);
+                        return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
                     }
                 }
 
@@ -105,9 +105,19 @@ public class MeteringBarrelItem extends Item {
         level.gameEvent(player, GameEvent.FLUID_PICKUP, blockpos);
     }
 
-    private boolean placeFluid(@NotNull Level level, Player player, BlockState blockState, BlockPos blockpos) {
+    private boolean placeFluid(@NotNull Level level, Player player, BlockPos blockpos,
+                               BlockHitResult blockHitResult, MeteringBarrelData barrelData) {
 
-        return false;
+        BlockState blockState = level.getBlockState(blockpos);
+
+        if (!(blockState.getBlock() instanceof LiquidBlockContainer) && !blockState.isAir()) {
+            return blockHitResult != null && this.placeFluid(level, player, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, barrelData);
+        } else if (blockState.getBlock() instanceof LiquidBlockContainer liquidBlockContainer) {
+            liquidBlockContainer.placeLiquid(level, blockpos, blockState, barrelData.getFluidState());
+            return true;
+        }else{
+            level.setBlock(blockpos, barrelData.getFluidState().createLegacyBlock(), 3);
+            return true;
+        }
     }
-
 }

@@ -6,6 +6,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 
@@ -40,6 +41,10 @@ public record MeteringBarrelData(FluidStack barrelFluid,int maxCapacity) {
 
     public MeteringBarrelData set(FluidStack newFluidStack){
         return this.copyWithFluid(newFluidStack);
+    }
+
+    public FluidState getFluidState(){
+        return getFluid().defaultFluidState();
     }
 
     public Fluid getFluid(){
