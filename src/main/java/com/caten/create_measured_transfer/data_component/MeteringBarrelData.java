@@ -71,4 +71,10 @@ public record MeteringBarrelData(FluidStack barrelFluid,int maxCapacity) {
         return barrelFluid.isEmpty();
     }
 
+    public String getFluidName() {
+        if (!(barrelFluid.isEmpty())) {
+            return barrelFluid.getFluid().getFluidType().getDescription().getString();
+        }
+        return "Empty";
+    }
 }
