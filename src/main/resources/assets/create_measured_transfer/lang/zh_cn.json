@@ -1,3 +1,6 @@
 {
-  "item.create_measured_transfer.metering_barrel": "计量桶"
+  "item.create_measured_transfer.metering_barrel": "计量桶",
+  "screen.create_measured_transfer.metering_barrel": "计量桶",
+  "button.create_measured_transfer.clear": "清空",
+  "item.create_measured_transfer.metering_barrel.empty": "空"
 }

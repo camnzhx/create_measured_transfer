@@ -1,4 +1,6 @@
 {
   "item.create_measured_transfer.metering_barrel": "Metering Barrel",
-  "screen.create_measured_transfer.metering_barrel": "Metering Barrel"
+  "screen.create_measured_transfer.metering_barrel": "Metering Barrel",
+  "button.create_measured_transfer.clear": "clear",
+  "item.create_measured_transfer.metering_barrel.empty": "Empty"
 }

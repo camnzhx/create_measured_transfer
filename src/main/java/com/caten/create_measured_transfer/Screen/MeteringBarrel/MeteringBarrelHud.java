@@ -26,8 +26,14 @@ public class MeteringBarrelHud {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.screen != null) return;
         Player player = mc.player;
-        ItemStack itemStack = player.getMainHandItem();
-        if(itemStack.getItem() instanceof MeteringBarrelItem){
+
+        ItemStack itemStack = null;
+        if(player.getMainHandItem().getItem() instanceof MeteringBarrelItem){
+            itemStack = player.getMainHandItem();
+        } else if (player.getOffhandItem().getItem() instanceof MeteringBarrelItem) {
+            itemStack = player.getOffhandItem();
+        }
+        if(itemStack != null){
             GuiGraphics gui = event.getGuiGraphics();
             Font font = mc.font;
 
@@ -42,7 +48,7 @@ public class MeteringBarrelHud {
             int height = gui.guiHeight();
 
             gui.drawString(font, fluidName, 10, height-25, 0xFF8C00);
-            gui.drawString(font, volume + " mL", 10, height-10, 0x55FF55);
+            gui.drawString(font, volume + " mB", 10, height-10, 0x55FF55);
         }
 
 

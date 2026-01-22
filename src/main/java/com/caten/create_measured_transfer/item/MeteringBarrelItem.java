@@ -38,7 +38,7 @@ public class MeteringBarrelItem extends Item {
     private static final Logger LOGGER = Logger.getLogger(MeteringBarrelItem.class.getName());
     private static final int A_BUCKET_VOLUME = FluidType.BUCKET_VOLUME;
 
-    protected static final int MaxLiquidVolume = 4000;
+    public static final int MaxLiquidVolume = 4000;
 
     public MeteringBarrelItem(Properties properties) {
         super(properties);
@@ -59,20 +59,20 @@ public class MeteringBarrelItem extends Item {
         //判断视线朝向结果
         if (blockhitresult.getType() == HitResult.Type.MISS) {          //没有命中任何方块,打开物品界面
             if(!( player instanceof ServerPlayer)&& player.isShiftKeyDown()){
-                Minecraft.getInstance().setScreen(new MeteringBarrelScreen());
+                Minecraft.getInstance().setScreen(new MeteringBarrelScreen(itemStack));
             }
             return InteractionResultHolder.pass(itemStack);
         } else if (blockhitresult.getType() != HitResult.Type.BLOCK) {  //命中结果不是方块,不做任何操作
             return InteractionResultHolder.pass(itemStack);
         } else {                                                        //命中结果是方块,进行相应操作
-
+            int barrelCapacity = barrelData.getCapacity();
 
             BlockPos blockpos = blockhitresult.getBlockPos();
 
             BlockState blockState = level.getBlockState(blockpos);
             FluidState fluidState = blockState.getFluidState();
             
-            if (barrelData.isEmpty()) {//桶内没有液体，尝试拾取方块内的液体
+            if (barrelData.isEmpty() && barrelCapacity >= A_BUCKET_VOLUME) {//桶内没有液体且桶容量足够，尝试拾取方块内的液体
                 if(blockState.getBlock() instanceof BucketPickup) {
                     itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.setFluid(fluidState.getType(), A_BUCKET_VOLUME));
                     pickupFluid(level, player, blockState, blockpos);
@@ -80,7 +80,7 @@ public class MeteringBarrelItem extends Item {
                 }
             } else {
                 int fluidAmount = barrelData.getAmount();
-                int residualAmount = MaxLiquidVolume - fluidAmount;//计算剩余可装液体量
+                int residualAmount = barrelCapacity - fluidAmount;//计算剩余可装液体量
                 if (residualAmount >= A_BUCKET_VOLUME) {
                     if (blockState.getBlock() instanceof BucketPickup) {
                         itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.setAmount(fluidAmount + A_BUCKET_VOLUME));
@@ -149,5 +149,28 @@ public class MeteringBarrelItem extends Item {
         if(soundevent == null) soundevent = content.is(FluidTags.LAVA) ? SoundEvents.BUCKET_EMPTY_LAVA : SoundEvents.BUCKET_EMPTY;
         p_40697_.playSound(p_40696_, p_40698_, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
         p_40697_.gameEvent(p_40696_, GameEvent.FLUID_PLACE, p_40698_);
+    }
+
+    public static void emptyFluid(ItemStack itemStack){
+        MeteringBarrelData barrelData = itemStack.get(ModDataComponents.METERING_BARREL_DATA);
+        if(barrelData == null || barrelData.isEmpty()){
+            return;
+        }
+        itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.keepCapacityEmpty());
+    }
+
+    public static int getCapacity(ItemStack itemStack){
+        MeteringBarrelData barrelData = itemStack.get(ModDataComponents.METERING_BARREL_DATA);
+        if (barrelData != null) {
+            return barrelData.getCapacity();
+        }
+        return MaxLiquidVolume;
+    }
+
+    public static void setCapacity(ItemStack itemStack, int newCapacity){
+        MeteringBarrelData barrelData = itemStack.get(ModDataComponents.METERING_BARREL_DATA);
+        if (barrelData != null) {
+            itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.setCapacity(newCapacity));
+        }
     }
 }
