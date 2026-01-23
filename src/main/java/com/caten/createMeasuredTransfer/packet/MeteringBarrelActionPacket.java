@@ -1,6 +1,6 @@
-package com.caten.create_measured_transfer.packet;
+package com.caten.createMeasuredTransfer.packet;
 
-import com.caten.create_measured_transfer.item.MeteringBarrelItem;
+import com.caten.createMeasuredTransfer.item.MeteringBarrelItem;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;

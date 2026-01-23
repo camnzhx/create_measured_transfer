@@ -1,9 +1,9 @@
-package com.caten.create_measured_transfer.item;
+package com.caten.createMeasuredTransfer.item;
 
 
-import com.caten.create_measured_transfer.Create_measured_transfer;
-import com.caten.create_measured_transfer.data_component.MeteringBarrelData;
-import com.caten.create_measured_transfer.ModDataComponents;
+import com.caten.createMeasuredTransfer.CreateMeasuredTransfer;
+import com.caten.createMeasuredTransfer.component.MeteringBarrelData;
+import com.caten.createMeasuredTransfer.ModDataComponents;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -11,7 +11,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 public class ModItems {
     public static final DeferredRegister.Items ITEMS=
-            DeferredRegister.createItems(Create_measured_transfer.MODID);
+            DeferredRegister.createItems(CreateMeasuredTransfer.MOD_ID);
 
     public static final DeferredItem<Item> metering_barrel =
             ITEMS.registerItem("metering_barrel", MeteringBarrelItem::new,

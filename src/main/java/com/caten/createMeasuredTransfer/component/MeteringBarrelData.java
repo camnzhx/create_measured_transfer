@@ -1,4 +1,4 @@
-package com.caten.create_measured_transfer.data_component;
+package com.caten.createMeasuredTransfer.component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;

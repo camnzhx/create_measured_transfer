@@ -1,11 +1,9 @@
-package com.caten.create_measured_transfer.item;
+package com.caten.createMeasuredTransfer.item;
 
-import com.caten.create_measured_transfer.ModDataComponents;
-import com.caten.create_measured_transfer.Screen.MeteringBarrel.MeteringBarrelScreen;
-import com.caten.create_measured_transfer.data_component.MeteringBarrelData;
-import net.minecraft.client.Minecraft;
+import com.caten.createMeasuredTransfer.ModDataComponents;
+import com.caten.createMeasuredTransfer.component.MeteringBarrelData;
+import com.caten.createMeasuredTransfer.event.OpenMeteringBarrelScreenEvent;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -26,6 +24,7 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
 import org.jetbrains.annotations.NotNull;
@@ -58,8 +57,9 @@ public class MeteringBarrelItem extends Item {
 
         //判断视线朝向结果
         if (blockhitresult.getType() == HitResult.Type.MISS) {          //没有命中任何方块,打开物品界面
-            if(!( player instanceof ServerPlayer)&& player.isShiftKeyDown()){
-                Minecraft.getInstance().setScreen(new MeteringBarrelScreen(itemStack));
+            if(level.isClientSide() && player.isShiftKeyDown()){
+//                Minecraft.getInstance().setScreen(new com.caten.create_measured_transfer.Screen.MeteringBarrel.MeteringBarrelScreen(itemStack));
+                NeoForge.EVENT_BUS.post(new OpenMeteringBarrelScreenEvent(itemStack));
             }
             return InteractionResultHolder.pass(itemStack);
         } else if (blockhitresult.getType() != HitResult.Type.BLOCK) {  //命中结果不是方块,不做任何操作

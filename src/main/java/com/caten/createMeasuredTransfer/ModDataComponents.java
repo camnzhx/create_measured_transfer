@@ -1,17 +1,16 @@
-package com.caten.create_measured_transfer;
+package com.caten.createMeasuredTransfer;
 
-import com.caten.create_measured_transfer.data_component.MeteringBarrelData;
+import com.caten.createMeasuredTransfer.component.MeteringBarrelData;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 import java.util.function.UnaryOperator;
 
 public class ModDataComponents {
     private static final DeferredRegister.DataComponents DATA_COMPONENTS =
-            DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, Create_measured_transfer.MODID);
+            DeferredRegister.createDataComponents(Registries.DATA_COMPONENT_TYPE, CreateMeasuredTransfer.MOD_ID);
 
     public static final DataComponentType<MeteringBarrelData> METERING_BARREL_DATA = register(
             "metering_barrel_data",
