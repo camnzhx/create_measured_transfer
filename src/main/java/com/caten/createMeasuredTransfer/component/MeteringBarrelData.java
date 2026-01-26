@@ -33,7 +33,7 @@ public record MeteringBarrelData(FluidStack barrelFluid,int Capacity) {
         return new MeteringBarrelData(FluidStack.EMPTY, maxCapacity);
     }
 
-    public MeteringBarrelData copyWithFluid(FluidStack barrelFluid) {
+    public MeteringBarrelData copyWithFluidStack(FluidStack barrelFluid) {
         return new MeteringBarrelData(barrelFluid, this.Capacity);
     }
 
@@ -46,7 +46,7 @@ public record MeteringBarrelData(FluidStack barrelFluid,int Capacity) {
     }
 
     // 将流体设置为空，但保留容量不变
-    public MeteringBarrelData keepCapacityEmpty(){return this.copyWithFluid(FluidStack.EMPTY);}
+    public MeteringBarrelData keepCapacityEmpty(){return this.copyWithFluidStack(FluidStack.EMPTY);}
 
     public FluidStack getFluidStack() {
         return barrelFluid;
@@ -61,8 +61,7 @@ public record MeteringBarrelData(FluidStack barrelFluid,int Capacity) {
     }
 
     public MeteringBarrelData setFluid(Fluid newFluid, int amount){
-        if (barrelFluid.isEmpty()) return this.copyWithFluid(new FluidStack(newFluid, amount));
-        else return this;
+        return this.copyWithFluidStack(new FluidStack(newFluid, amount));
     }
 
     public int getAmount() {
@@ -70,10 +69,9 @@ public record MeteringBarrelData(FluidStack barrelFluid,int Capacity) {
     }
 
     public MeteringBarrelData setAmount(int newAmount){
-        if (barrelFluid.isEmpty())
-            return this;
+        if (newAmount <= 0 || this.isEmpty()) return this.copyWithFluidStack(FluidStack.EMPTY);
         barrelFluid.setAmount(newAmount);
-        return this.copyWithFluid(this.barrelFluid.copyWithAmount(newAmount));
+        return this.copyWithFluidStack(this.barrelFluid.copyWithAmount(newAmount));
     }
 
     public String getFluidName() {
