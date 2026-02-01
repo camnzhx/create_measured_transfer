@@ -66,6 +66,10 @@ public class MeteringBarrelItem extends Item {
 
         if(capability != null) {
             FluidStack fluidStack = fluidHandler(capability, barrelData);
+            if(FluidStack.isSameFluidSameComponents(fluidStack, barrelData.getFluidStack())
+                    && fluidStack.getAmount() == barrelData.getAmount()){
+                return InteractionResult.PASS;
+            }
             itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.copyWithFluidStack(fluidStack));
             return InteractionResult.SUCCESS;
         }
