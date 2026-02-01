@@ -62,16 +62,13 @@ public class MeteringBarrelItem extends Item {
             return InteractionResult.FAIL;
         }
 
-        IFluidHandler capability = level.getCapability(Capabilities.FluidHandler.BLOCK, blockPos, null);
+        IFluidHandler blockHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, blockPos, null);
 
-        if(capability != null) {
-            FluidStack fluidStack = fluidHandler(capability, barrelData);
-            if(FluidStack.isSameFluidSameComponents(fluidStack, barrelData.getFluidStack())
-                    && fluidStack.getAmount() == barrelData.getAmount()){
-                return InteractionResult.PASS;
-            }
-            itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.copyWithFluidStack(fluidStack));
-            return InteractionResult.SUCCESS;
+        if(blockHandler != null) {
+            // 使用 ItemFluidHandlerProvider 来表示物品侧的流体能力
+            ItemFluidHandlerProvider itemHandler = ItemFluidHandlerProvider.loadFrom(itemStack);
+            boolean changed = transferBetween(blockHandler, itemHandler, itemStack);
+            return changed ? InteractionResult.SUCCESS : InteractionResult.PASS;
         }
         return InteractionResult.PASS;
     }
@@ -103,64 +100,65 @@ public class MeteringBarrelItem extends Item {
             BlockState blockState = level.getBlockState(blockPos);
             Block block = blockState.getBlock();
 
-            int fluidAmount = barrelData.getAmount();
+            // 使用 itemHandler 来代表物品内状态
+            ItemFluidHandlerProvider itemHandler = ItemFluidHandlerProvider.loadFrom(itemStack);
 
             if (block instanceof BucketPickup) {
-                if (canPickupFluid(blockState, barrelData)) {
+                // 判断是否可以拾取方块流体
+                if (canPickupFluid(blockState, itemHandler)) {
                     Fluid pickedFluid = pickupFluid(level, player, blockPos, blockState);
-                    itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.setFluid(pickedFluid,fluidAmount + A_BUCKET_VOLUME));
+                    // 把拾取到的流体填入物品（直接 execute）
+                    itemHandler.fill(new FluidStack(pickedFluid, A_BUCKET_VOLUME), IFluidHandler.FluidAction.EXECUTE);
+                    itemHandler.saveTo(itemStack);
                     return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
                 }
             }
-            if (canPlaceFluid(barrelData) && placeFluid(level, player, blockPos, blockhitresult, barrelData)) {
-                itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.setAmount(fluidAmount - A_BUCKET_VOLUME));
+            if (canPlaceFluid(itemHandler) && placeFluid(level, player, blockPos, blockhitresult, itemHandler)) {
+                // placeFluid 已在执行时从 itemHandler 中抽取流体，保存并返回成功
+                itemHandler.saveTo(itemStack);
                 return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
             }
             return InteractionResultHolder.pass(itemStack);
         }
     }
 
-    private FluidStack fluidHandler(IFluidHandler capability,MeteringBarrelData barrelData) {
-
-        Fluid fluid = barrelData.getFluid();
-        int fluidAmount = barrelData.getAmount();
-        int fluidCapacity = barrelData.getCapacity();
-
-        if(fluidAmount < fluidCapacity){
-            if(barrelData.isEmpty())return capability.drain(fluidCapacity, IFluidHandler.FluidAction.EXECUTE);
-            FluidStack defaultFluid = new FluidStack(fluid, fluidCapacity - fluidAmount);
-            FluidStack drainedFluid = capability.drain(defaultFluid, IFluidHandler.FluidAction.SIMULATE);
-            if(!drainedFluid.isEmpty()){
-                drainedFluid = capability.drain(defaultFluid, IFluidHandler.FluidAction.EXECUTE);
-                return barrelData.setAmount(fluidAmount + drainedFluid.getAmount()).getFluidStack();
+    // 将方块 handler 与物品 handler 做 simulate -> execute 的一次 transfer（尝试从方块到物品，若不可则尝试反向）
+    private boolean transferBetween(IFluidHandler blockHandler, ItemFluidHandlerProvider itemHandler, ItemStack stack) {
+        // 先尝试从方块抽取到物品
+        FluidStack simulatedFromBlock = blockHandler.drain(A_BUCKET_VOLUME, IFluidHandler.FluidAction.SIMULATE);
+        if (!simulatedFromBlock.isEmpty()) {
+            int accepted = itemHandler.fill(simulatedFromBlock, IFluidHandler.FluidAction.SIMULATE);
+            if (accepted > 0) {
+                FluidStack drained = blockHandler.drain(accepted, IFluidHandler.FluidAction.EXECUTE);
+                itemHandler.fill(drained, IFluidHandler.FluidAction.EXECUTE);
+                itemHandler.saveTo(stack);
+                return true;
             }
         }
-        if(fluidAmount > 0){
-            FluidStack defaultFluid = new FluidStack(fluid,fluidAmount);
-            int filledAmount = capability.fill(defaultFluid, IFluidHandler.FluidAction.EXECUTE);
-            return barrelData.setAmount(fluidAmount - filledAmount).getFluidStack();
+        // 再尝试从物品放到方块
+        FluidStack simulatedFromItem = itemHandler.drain(A_BUCKET_VOLUME, IFluidHandler.FluidAction.SIMULATE);
+        if (!simulatedFromItem.isEmpty()) {
+            int willFill = blockHandler.fill(simulatedFromItem, IFluidHandler.FluidAction.SIMULATE);
+            if (willFill > 0) {
+                FluidStack drained = itemHandler.drain(willFill, IFluidHandler.FluidAction.EXECUTE);
+                blockHandler.fill(drained, IFluidHandler.FluidAction.EXECUTE);
+                itemHandler.saveTo(stack);
+                return true;
+            }
         }
-        return barrelData.getFluidStack();
+        return false;
     }
 
-    private boolean canPlaceFluid(MeteringBarrelData barrelData) {
-        int amount = barrelData.getAmount();
+    private boolean canPlaceFluid(ItemFluidHandlerProvider itemHandler) {
+        int amount = itemHandler.getAmount();
         return amount >= A_BUCKET_VOLUME;
     }
 
-    private boolean canPickupFluid(BlockState blockState, MeteringBarrelData barrelData) {
-        int amount = barrelData.getAmount();
-        int capacity = barrelData.getCapacity();
-        if(capacity - amount < A_BUCKET_VOLUME){
-            return false;
-        }
-        if(blockState.getFluidState().isEmpty()){
-            return false;
-        }
-            if(!(blockState.getFluidState().getFluidType().equals(barrelData.getFluid().getFluidType())) && !barrelData.isEmpty()){
-                return false;
-            }
-        return true;
+    private boolean canPickupFluid(BlockState blockState, ItemFluidHandlerProvider itemHandler) {
+        int amount = itemHandler.getAmount();
+        int capacity = itemHandler.getCapacity();
+        return !(capacity - amount < A_BUCKET_VOLUME) && !blockState.getFluidState().isEmpty()
+                && (itemHandler.isEmpty() || blockState.getFluidState().getFluidType().equals(itemHandler.getFluidStack().getFluid().getFluidType()));
     }
 
     private Fluid pickupFluid(@NotNull Level level, Player player, BlockPos blockPos, BlockState blockState) {
@@ -177,31 +175,46 @@ public class MeteringBarrelItem extends Item {
     }
 
     private boolean placeFluid(@NotNull Level level, Player player, BlockPos blockpos,
-                               BlockHitResult blockHitResult, MeteringBarrelData barrelData) {
+                               BlockHitResult blockHitResult, ItemFluidHandlerProvider itemHandler) {
 
         BlockState blockState = level.getBlockState(blockpos);
 
-        boolean flag = false;
+        boolean flag;
 
         if (!(blockState.getBlock() instanceof LiquidBlockContainer) && !blockState.isAir() && blockState.getFluidState().isEmpty()) {
-            flag = blockHitResult != null && this.placeFluid(level, player, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, barrelData);
+            flag = blockHitResult != null && this.placeFluid(level, player, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, itemHandler);
         } else if (blockState.getBlock() instanceof LiquidBlockContainer liquidBlockContainer) {
-            liquidBlockContainer.placeLiquid(level, blockpos, blockState, barrelData.getFluidState());
-            flag = true;
+            // 从 itemHandler 中抽出合适量的流体并放入方块
+            FluidStack toPlace = itemHandler.drain(A_BUCKET_VOLUME, IFluidHandler.FluidAction.SIMULATE);
+            if (!toPlace.isEmpty()) {
+                liquidBlockContainer.placeLiquid(level, blockpos, blockState, toPlace.getFluid().defaultFluidState());
+                // 在这里我们已经放置，执行抽取
+                itemHandler.drain(A_BUCKET_VOLUME, IFluidHandler.FluidAction.EXECUTE);
+                flag = true;
+            } else {
+                flag = false;
+            }
         }else{
-            level.setBlock(blockpos, barrelData.getFluidState().createLegacyBlock(), 11);
-            flag = true;
+            // world.setBlock to fluid block
+            FluidStack toPlace = itemHandler.drain(A_BUCKET_VOLUME, IFluidHandler.FluidAction.SIMULATE);
+            if (!toPlace.isEmpty()) {
+                level.setBlock(blockpos, toPlace.getFluid().defaultFluidState().createLegacyBlock(), 11);
+                itemHandler.drain(A_BUCKET_VOLUME, IFluidHandler.FluidAction.EXECUTE);
+                flag = true;
+            } else {
+                flag = false;
+            }
         }
         if (flag) {
             player.awardStat(Stats.ITEM_USED.get(this));
-            playEmptySound(player,level, blockpos, barrelData);
+            playEmptySound(player,level, blockpos, itemHandler);
             level.gameEvent(player, GameEvent.FLUID_PLACE, blockpos);
         }
         return flag;
     }
 
-    protected void playEmptySound(@Nullable Player p_40696_, LevelAccessor p_40697_, BlockPos p_40698_, MeteringBarrelData barrelData) {
-        FluidStack content = barrelData.getFluidStack();
+    protected void playEmptySound(@Nullable Player p_40696_, LevelAccessor p_40697_, BlockPos p_40698_, ItemFluidHandlerProvider itemHandler) {
+        FluidStack content = itemHandler.getFluidStack();
         SoundEvent soundevent = content.getFluidType().getSound(p_40696_, p_40697_, p_40698_, net.neoforged.neoforge.common.SoundActions.BUCKET_EMPTY);
         if(soundevent == null) soundevent = content.is(FluidTags.LAVA) ? SoundEvents.BUCKET_EMPTY_LAVA : SoundEvents.BUCKET_EMPTY;
         p_40697_.playSound(p_40696_, p_40698_, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);

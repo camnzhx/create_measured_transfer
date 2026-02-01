@@ -1,6 +1,9 @@
 package com.caten.createMeasuredTransfer;
 
 import com.caten.createMeasuredTransfer.item.ModItems;
+import com.caten.createMeasuredTransfer.component.MeteringBarrelData;
+import com.caten.createMeasuredTransfer.item.MeteringBarrelCapabilityRegistrar;
+import com.caten.createMeasuredTransfer.ModDataComponents;
 import com.mojang.logging.LogUtils;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.neoforged.api.distmarker.Dist;
@@ -25,6 +28,9 @@ public class CreateMeasuredTransfer {
         // Register mod items and data components
         ModItems.register(modEventBus);
         ModDataComponents.register(modEventBus);
+
+        // Attempt to register item capabilities (best-effort, no hard dependency)
+        MeteringBarrelCapabilityRegistrar.register();
 
         // Register ourselves for server and other game events we are interested in.
         // Note that this is necessary if and only if we want *this* class (Create_measured_transfer) to respond directly to events.
