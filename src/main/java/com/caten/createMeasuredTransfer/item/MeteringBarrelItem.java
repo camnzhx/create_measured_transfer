@@ -4,6 +4,7 @@ import com.caten.createMeasuredTransfer.ModDataComponents;
 import com.caten.createMeasuredTransfer.component.MeteringBarrelData;
 import com.caten.createMeasuredTransfer.event.OpenMeteringBarrelScreenEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -62,16 +63,18 @@ public class MeteringBarrelItem extends Item {
             return InteractionResult.FAIL;
         }
 
-        IFluidHandler capability = level.getCapability(Capabilities.FluidHandler.BLOCK, blockPos, null);
+        for(Direction direction : Direction.values()) {
+            IFluidHandler capability = level.getCapability(Capabilities.FluidHandler.BLOCK, blockPos, direction);
 
-        if(capability != null) {
-            FluidStack fluidStack = fluidHandler(capability, barrelData);
-            if(FluidStack.isSameFluidSameComponents(fluidStack, barrelData.getFluidStack())
-                    && fluidStack.getAmount() == barrelData.getAmount()){
-                return InteractionResult.PASS;
+            if (capability != null) {
+                FluidStack fluidStack = fluidHandler(capability, barrelData);
+                if (!FluidStack.isSameFluidSameComponents(fluidStack, barrelData.getFluidStack())
+                        || fluidStack.getAmount() != barrelData.getAmount()) {
+                    itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.copyWithFluidStack(fluidStack));
+                    return InteractionResult.sidedSuccess(level.isClientSide());
+                }
+
             }
-            itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.copyWithFluidStack(fluidStack));
-            return InteractionResult.SUCCESS;
         }
         return InteractionResult.PASS;
     }
@@ -126,6 +129,7 @@ public class MeteringBarrelItem extends Item {
         int fluidAmount = barrelData.getAmount();
         int fluidCapacity = barrelData.getCapacity();
 
+        //如果桶内流体少于设置容量，尝试从方块中抽取流体
         if(fluidAmount < fluidCapacity){
             if(barrelData.isEmpty())return capability.drain(fluidCapacity, IFluidHandler.FluidAction.EXECUTE);
             FluidStack defaultFluid = new FluidStack(fluid, fluidCapacity - fluidAmount);
@@ -135,17 +139,23 @@ public class MeteringBarrelItem extends Item {
                 return barrelData.setAmount(fluidAmount + drainedFluid.getAmount()).getFluidStack();
             }
         }
-        if(fluidAmount > 0){
-            FluidStack defaultFluid = new FluidStack(fluid,fluidAmount);
-            int filledAmount = capability.fill(defaultFluid, IFluidHandler.FluidAction.EXECUTE);
-            return barrelData.setAmount(fluidAmount - filledAmount).getFluidStack();
+
+        //如果桶内流体多于设置容量，尝试向方块中放置流体
+        if(fluidCapacity < fluidAmount){
+            FluidStack defaultFluid = new FluidStack(fluid,fluidAmount - fluidCapacity);
+            int filledAmount = capability.fill(defaultFluid, IFluidHandler.FluidAction.SIMULATE);
+            if(filledAmount > 0) {
+                filledAmount = capability.fill(defaultFluid, IFluidHandler.FluidAction.EXECUTE);
+                return barrelData.setAmount(fluidAmount - filledAmount).getFluidStack();
+            }
         }
         return barrelData.getFluidStack();
     }
 
     private boolean canPlaceFluid(MeteringBarrelData barrelData) {
+        int capacity = barrelData.getCapacity();
         int amount = barrelData.getAmount();
-        return amount >= A_BUCKET_VOLUME;
+        return (amount - capacity) >= A_BUCKET_VOLUME;
     }
 
     private boolean canPickupFluid(BlockState blockState, MeteringBarrelData barrelData) {
