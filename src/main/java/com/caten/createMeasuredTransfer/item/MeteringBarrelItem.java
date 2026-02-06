@@ -26,10 +26,12 @@ import net.minecraft.world.level.block.LiquidBlockContainer;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.LavaFluid;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.SoundAction;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -67,13 +69,11 @@ public class MeteringBarrelItem extends Item {
             IFluidHandler capability = level.getCapability(Capabilities.FluidHandler.BLOCK, blockPos, direction);
 
             if (capability != null) {
-                FluidStack fluidStack = fluidHandler(capability, barrelData);
-                if (!FluidStack.isSameFluidSameComponents(fluidStack, barrelData.getFluidStack())
-                        || fluidStack.getAmount() != barrelData.getAmount()) {
+                FluidStack fluidStack = fluidHandler(capability, barrelData, context);
+                if(fluidStack != barrelData.getFluidStack()){
                     itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.copyWithFluidStack(fluidStack));
                     return InteractionResult.sidedSuccess(level.isClientSide());
                 }
-
             }
         }
         return InteractionResult.PASS;
@@ -123,7 +123,7 @@ public class MeteringBarrelItem extends Item {
         }
     }
 
-    private FluidStack fluidHandler(IFluidHandler capability,MeteringBarrelData barrelData) {
+    private FluidStack fluidHandler(IFluidHandler capability,MeteringBarrelData barrelData,UseOnContext context) {
 
         Fluid fluid = barrelData.getFluid();
         int fluidAmount = barrelData.getAmount();
@@ -131,21 +131,26 @@ public class MeteringBarrelItem extends Item {
 
         //如果桶内流体少于设置容量，尝试从方块中抽取流体
         if(fluidAmount < fluidCapacity){
-            if(barrelData.isEmpty())return capability.drain(fluidCapacity, IFluidHandler.FluidAction.EXECUTE);
+            if(barrelData.isEmpty()) {
+                playFillSound(context.getPlayer(),context.getLevel(), context.getClickedPos(),barrelData);
+                return capability.drain(fluidCapacity, IFluidHandler.FluidAction.EXECUTE);
+            }
             FluidStack defaultFluid = new FluidStack(fluid, fluidCapacity - fluidAmount);
             FluidStack drainedFluid = capability.drain(defaultFluid, IFluidHandler.FluidAction.SIMULATE);
             if(!drainedFluid.isEmpty()){
                 drainedFluid = capability.drain(defaultFluid, IFluidHandler.FluidAction.EXECUTE);
+                playFillSound(context.getPlayer(),context.getLevel(), context.getClickedPos(),barrelData);
                 return barrelData.setAmount(fluidAmount + drainedFluid.getAmount()).getFluidStack();
             }
         }
 
-        //如果桶内流体多于设置容量，尝试向方块中放置流体
-        if(fluidCapacity < fluidAmount){
-            FluidStack defaultFluid = new FluidStack(fluid,fluidAmount - fluidCapacity);
+        //如果桶内存在流体，尝试向方块中灌入设置的流体量
+        if(fluidAmount > 0){
+            FluidStack defaultFluid = new FluidStack(fluid, Math.min(fluidAmount, fluidCapacity));
             int filledAmount = capability.fill(defaultFluid, IFluidHandler.FluidAction.SIMULATE);
             if(filledAmount > 0) {
                 filledAmount = capability.fill(defaultFluid, IFluidHandler.FluidAction.EXECUTE);
+                playDrainSound(context.getPlayer(),context.getLevel(), context.getClickedPos(), barrelData);
                 return barrelData.setAmount(fluidAmount - filledAmount).getFluidStack();
             }
         }
@@ -155,7 +160,7 @@ public class MeteringBarrelItem extends Item {
     private boolean canPlaceFluid(MeteringBarrelData barrelData) {
         int capacity = barrelData.getCapacity();
         int amount = barrelData.getAmount();
-        return (amount - capacity) >= A_BUCKET_VOLUME;
+        return capacity < amount ? capacity >= A_BUCKET_VOLUME : amount >= A_BUCKET_VOLUME;
     }
 
     private boolean canPickupFluid(BlockState blockState, MeteringBarrelData barrelData) {
@@ -167,10 +172,7 @@ public class MeteringBarrelItem extends Item {
         if(blockState.getFluidState().isEmpty()){
             return false;
         }
-            if(!(blockState.getFluidState().getFluidType().equals(barrelData.getFluid().getFluidType())) && !barrelData.isEmpty()){
-                return false;
-            }
-        return true;
+        return blockState.getFluidState().getFluidType().equals(barrelData.getFluid().getFluidType()) || barrelData.isEmpty();
     }
 
     private Fluid pickupFluid(@NotNull Level level, Player player, BlockPos blockPos, BlockState blockState) {
@@ -179,8 +181,6 @@ public class MeteringBarrelItem extends Item {
         bucketPickup.pickupBlock(player, level, blockPos, blockState);
 
         player.awardStat(Stats.ITEM_USED.get(this));
-
-        //播放音效和触发游戏事件
         bucketPickup.getPickupSound(blockState).ifPresent(p_150709_ -> player.playSound(p_150709_, 1.0F, 1.0F));
         level.gameEvent(player, GameEvent.FLUID_PICKUP, blockPos);
         return blockState.getFluidState().getType();
@@ -191,7 +191,7 @@ public class MeteringBarrelItem extends Item {
 
         BlockState blockState = level.getBlockState(blockpos);
 
-        boolean flag = false;
+        boolean flag;
 
         if (!(blockState.getBlock() instanceof LiquidBlockContainer) && !blockState.isAir() && blockState.getFluidState().isEmpty()) {
             flag = blockHitResult != null && this.placeFluid(level, player, blockHitResult.getBlockPos().relative(blockHitResult.getDirection()), null, barrelData);
@@ -204,18 +204,25 @@ public class MeteringBarrelItem extends Item {
         }
         if (flag) {
             player.awardStat(Stats.ITEM_USED.get(this));
-            playEmptySound(player,level, blockpos, barrelData);
+            playDrainSound(player,level, blockpos, barrelData);
             level.gameEvent(player, GameEvent.FLUID_PLACE, blockpos);
         }
         return flag;
     }
 
-    protected void playEmptySound(@Nullable Player p_40696_, LevelAccessor p_40697_, BlockPos p_40698_, MeteringBarrelData barrelData) {
+    private static void playFillSound(Player player, Level level, BlockPos blockPos, MeteringBarrelData barrelData) {
+        Fluid fluid = barrelData.getFluid();
+        SoundEvent sound = fluid.getFluidType().getSound(SoundAction.get("net.neoforged.neoforge.common.SoundActions.BUCKET_FILL"));
+        if(sound == null) sound = fluid instanceof LavaFluid ? SoundEvents.BUCKET_FILL_LAVA : SoundEvents.BUCKET_FILL;
+        level.playSound(player, blockPos, sound, SoundSource.BLOCKS, 1.0F, 1.0F);
+
+    }
+
+    private static void playDrainSound(@Nullable Player p_40696_, LevelAccessor p_40697_, BlockPos p_40698_, MeteringBarrelData barrelData) {
         FluidStack content = barrelData.getFluidStack();
         SoundEvent soundevent = content.getFluidType().getSound(p_40696_, p_40697_, p_40698_, net.neoforged.neoforge.common.SoundActions.BUCKET_EMPTY);
         if(soundevent == null) soundevent = content.is(FluidTags.LAVA) ? SoundEvents.BUCKET_EMPTY_LAVA : SoundEvents.BUCKET_EMPTY;
         p_40697_.playSound(p_40696_, p_40698_, soundevent, SoundSource.BLOCKS, 1.0F, 1.0F);
-        p_40697_.gameEvent(p_40696_, GameEvent.FLUID_PLACE, p_40698_);
     }
 
     public static void emptyFluid(ItemStack itemStack){
