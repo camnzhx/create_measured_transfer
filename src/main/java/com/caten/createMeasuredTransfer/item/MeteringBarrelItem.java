@@ -233,14 +233,6 @@ public class MeteringBarrelItem extends Item {
         itemStack.set(ModDataComponents.METERING_BARREL_DATA, barrelData.keepCapacityEmpty());
     }
 
-    public static int getCapacity(ItemStack itemStack){
-        MeteringBarrelData barrelData = itemStack.get(ModDataComponents.METERING_BARREL_DATA);
-        if (barrelData != null) {
-            return barrelData.getCapacity();
-        }
-        return MaxLiquidVolume;
-    }
-
     public static void setCapacity(ItemStack itemStack, int newCapacity){
         MeteringBarrelData barrelData = itemStack.get(ModDataComponents.METERING_BARREL_DATA);
         if (barrelData != null) {

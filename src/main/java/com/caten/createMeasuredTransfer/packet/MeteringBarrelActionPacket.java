@@ -65,8 +65,8 @@ public record MeteringBarrelActionPacket(ActionType action, int value) implement
 
                 if (heldItem.getItem() instanceof MeteringBarrelItem) {
                     switch (packet.action()) {
-                        case CLEAR -> MeteringBarrelItem.emptyFluid(heldItem);
-                        case SET_CAPACITY -> MeteringBarrelItem.setCapacity(heldItem, packet.value());
+                        case CLEAR : MeteringBarrelItem.emptyFluid(heldItem);
+                        case SET_CAPACITY : MeteringBarrelItem.setCapacity(heldItem, packet.value());
                     }
 
                     // 同步更新
