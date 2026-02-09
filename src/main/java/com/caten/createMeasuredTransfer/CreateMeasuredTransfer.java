@@ -32,7 +32,7 @@ public class CreateMeasuredTransfer {
         //NeoForge.EVENT_BUS.register(this);
 
         // Register the item to a creative tab
-        modEventBus.addListener(this::addCreative);
+        modEventBus.addListener(this::addCreativeTab);
 
         // Register mod packet payloads
         modEventBus.addListener(ModPacket::registerPayloads);
@@ -41,8 +41,8 @@ public class CreateMeasuredTransfer {
 //        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
 
-    private void addCreative(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS) {
+    private void addCreativeTab(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModItems.metering_barrel);
         }
     }

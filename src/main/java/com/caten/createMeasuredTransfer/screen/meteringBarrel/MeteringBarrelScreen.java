@@ -27,10 +27,11 @@ public class MeteringBarrelScreen extends Screen {
     private final int fluidAmount;
     private final String fluidName;
 
-    private int capacity;
+    private final int capacity;
 
     private EditBox capacityEditBox;
     private CapacitySlider capacitySlider;
+    private boolean isUpdating = false;
 
     public static void openScreen(OpenMeteringBarrelScreenEvent event) {
         Minecraft.getInstance().setScreen(new MeteringBarrelScreen(event.itemStack));
@@ -52,20 +53,11 @@ public class MeteringBarrelScreen extends Screen {
     protected void init() {
         super.init();
 
+        // 先创建编辑框
+        createCapacityEditBox();
+        this.addRenderableWidget(capacityEditBox);
 
-
-        // 添加清空按钮
-        this.addRenderableWidget(Button.builder(
-                        Component.translatable("button.create_measured_transfer.clear"),
-                        button -> {
-                            if(itemStack.getItem() instanceof MeteringBarrelItem){
-                                PacketDistributor.sendToServer(MeteringBarrelActionPacket.clear());
-                            }
-                        })
-                .pos(50, 60)
-                .build());
-
-        // 添加容量滑块
+        // 添加容量滑块（需要编辑框已创建）
         capacitySlider = new CapacitySlider(
                 50,
                 20,
@@ -80,15 +72,28 @@ public class MeteringBarrelScreen extends Screen {
         );
         this.addRenderableWidget(capacitySlider);
 
-        // 添加容量编辑框
+        // 添加清空按钮
+        this.addRenderableWidget(Button.builder(
+                        Component.translatable("button.create_measured_transfer.clear"),
+                        button -> {
+                            if(itemStack.getItem() instanceof MeteringBarrelItem){
+                                PacketDistributor.sendToServer(MeteringBarrelActionPacket.clear());
+                            }
+                        })
+                .pos(50, 60)
+                .build());
+    }
+
+    private void createCapacityEditBox() {
         capacityEditBox = new EditBox(
                 Minecraft.getInstance().font,
                 260,
                 20,
-                30,
+                40,
                 20,
                 Component.literal(String.valueOf(capacity))
         );
+        capacityEditBox.setValue(String.valueOf(capacity));
         capacityEditBox.setFilter(input -> {
             if (input.isEmpty()) return true;
             try {
@@ -99,21 +104,35 @@ public class MeteringBarrelScreen extends Screen {
                 return false;
             }
         });
-        this.addRenderableWidget(capacityEditBox);
+        
+        // 编辑框值变化时同步到滑块（防递归）
+        capacityEditBox.setResponder(text -> {
+            if (isUpdating) return; // 防止递归
+            
+            isUpdating = true;
+            try {
+                if (text.isEmpty()) {
+                    // 如果编辑框为空，设置为0
+                    capacitySlider.setValue(0);
+                    capacitySlider.applyValue();
+                } else {
+                    try {
+                        int value = Integer.parseInt(text);
+                        capacitySlider.setValue(value);
+                        capacitySlider.applyValue();
+                    } catch (NumberFormatException e) {
+                        // 忽略无效输入
+                    }
+                }
+            } finally {
+                isUpdating = false;
+            }
+        });
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers){
-        String strValue = capacityEditBox.getValue();
-        int value;
-        try{
-            value = Integer.parseInt(strValue);
-        } catch (NumberFormatException e){
-            value = 0;
-        }
-            capacitySlider.setValue(value);
-            capacitySlider.applyValue();
-
+        // E键关闭界面
         if(keyCode == 69) {
             super.onClose();
             return true;
@@ -121,15 +140,45 @@ public class MeteringBarrelScreen extends Screen {
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
-    private static class CapacitySlider extends ExtendedSlider {
+    private class CapacitySlider extends ExtendedSlider {
+        private final EditBox linkedEditBox;
 
         public CapacitySlider(int x, int y, int width, int height, Component prefix, Component suffix, double minValue, double maxValue, double currentValue, boolean showDecimal) {
             super(x, y, width, height, prefix, suffix, minValue, maxValue, currentValue, showDecimal);
+            this.linkedEditBox = capacityEditBox;
         }
 
         @Override
         protected void applyValue(){
-            PacketDistributor.sendToServer(MeteringBarrelActionPacket.setCapacity((int) this.getValue()));
+            int value = (int) this.getValue();
+            
+            // 更新编辑框显示（防递归）
+            if (linkedEditBox != null && !MeteringBarrelScreen.this.isUpdating) {
+                MeteringBarrelScreen.this.isUpdating = true;
+                try {
+                    linkedEditBox.setValue(String.valueOf(value));
+                } finally {
+                    MeteringBarrelScreen.this.isUpdating = false;
+                }
+            }
+            
+            // 发送数据包
+            PacketDistributor.sendToServer(MeteringBarrelActionPacket.setCapacity(value));
+        }
+        
+        @Override
+        protected void onDrag(double mouseX, double mouseY, double dragX, double dragY) {
+            super.onDrag(mouseX, mouseY, dragX, dragY);
+            
+            // 拖动时实时更新编辑框（防递归）
+            if (linkedEditBox != null && !MeteringBarrelScreen.this.isUpdating) {
+                MeteringBarrelScreen.this.isUpdating = true;
+                try {
+                    linkedEditBox.setValue(String.valueOf((int) this.getValue()));
+                } finally {
+                    MeteringBarrelScreen.this.isUpdating = false;
+                }
+            }
         }
     }
 }
