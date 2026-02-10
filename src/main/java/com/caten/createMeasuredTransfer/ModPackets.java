@@ -6,7 +6,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 import static com.caten.createMeasuredTransfer.CreateMeasuredTransfer.MOD_ID;
 
-public class ModPacket {
+public class ModPackets {
 
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(MOD_ID);

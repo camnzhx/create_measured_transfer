@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "x#x",
+    " x "
+  ],
+  "key": {
+    "#": {
+      "item": "create:fluid_tank"
+    },
+    "x": {
+      "item": "create:andesite_alloy"
+    }
+  },
+  "result": {
+    "count": 1,
+    "id": "create_measured_transfer:metering_barrel"
+  }
+}

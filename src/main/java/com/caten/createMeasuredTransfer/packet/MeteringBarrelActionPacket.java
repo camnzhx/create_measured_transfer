@@ -20,7 +20,6 @@ public record MeteringBarrelActionPacket(ActionType action, int value) implement
     public enum ActionType {
         CLEAR,          // 清空
         SET_CAPACITY,   // 设置容量
-        SET_THRESHOLD   // 设置阈值
     }
 
     public static final Type<MeteringBarrelActionPacket> TYPE = new Type<>(
@@ -53,10 +52,6 @@ public record MeteringBarrelActionPacket(ActionType action, int value) implement
         return new MeteringBarrelActionPacket(ActionType.SET_CAPACITY, capacity);
     }
 
-    public static MeteringBarrelActionPacket setThreshold(int threshold) {
-        return new MeteringBarrelActionPacket(ActionType.SET_THRESHOLD, threshold);
-    }
-
     // 处理所有操作
     public static void handle(MeteringBarrelActionPacket packet, IPayloadContext context) {
         context.enqueueWork(() -> {
@@ -65,7 +60,7 @@ public record MeteringBarrelActionPacket(ActionType action, int value) implement
 
                 if (heldItem.getItem() instanceof MeteringBarrelItem) {
                     switch (packet.action()) {
-                        case CLEAR : MeteringBarrelItem.emptyFluid(heldItem);
+                        case CLEAR : MeteringBarrelItem.emptyFluid(heldItem); break;
                         case SET_CAPACITY : MeteringBarrelItem.setCapacity(heldItem, packet.value());
                     }
 
@@ -75,10 +70,4 @@ public record MeteringBarrelActionPacket(ActionType action, int value) implement
             }
         });
     }
-
-//    private static void handleSetThreshold(MeteringBarrelItem item, ItemStack stack, int threshold) {
-//        // 设置阈值逻辑
-//        item.setThreshold(stack, threshold);
-//    }
-
 }

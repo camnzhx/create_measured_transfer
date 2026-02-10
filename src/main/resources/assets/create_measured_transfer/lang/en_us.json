@@ -1,6 +1,7 @@
 {
   "item.create_measured_transfer.metering_barrel": "Metering Barrel",
-  "screen.create_measured_transfer.metering_barrel": "Metering Barrel",
   "button.create_measured_transfer.clear": "clear",
-  "item.create_measured_transfer.metering_barrel.empty": "Empty"
+  "item.create_measured_transfer.empty": "Empty",
+  "item.create_measured_transfer.max_capacity": "maximum capacity",
+  "item.create_measured_transfer.hold_shift_for_more_info": "hold shift for more info"
 }

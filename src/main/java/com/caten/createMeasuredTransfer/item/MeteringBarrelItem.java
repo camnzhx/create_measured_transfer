@@ -5,6 +5,7 @@ import com.caten.createMeasuredTransfer.component.MeteringBarrelData;
 import com.caten.createMeasuredTransfer.event.OpenMeteringBarrelScreenEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -16,6 +17,7 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -38,6 +40,7 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.logging.Logger;
 
 public class MeteringBarrelItem extends Item {
@@ -45,7 +48,7 @@ public class MeteringBarrelItem extends Item {
     private static final Logger LOGGER = Logger.getLogger(MeteringBarrelItem.class.getName());
     private static final int A_BUCKET_VOLUME = FluidType.BUCKET_VOLUME;
 
-    public static final int MaxLiquidVolume = 4000;
+    public static final int MAX_CAPACITY = 4000;
 
     public MeteringBarrelItem(Properties properties) {
         super(properties);
@@ -155,6 +158,29 @@ public class MeteringBarrelItem extends Item {
             }
         }
         return barrelData.getFluidStack();
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @NotNull TooltipContext context, @NotNull List<Component> tooltip, @NotNull TooltipFlag flag) {
+        MeteringBarrelData barrelData = stack.get(ModDataComponents.METERING_BARREL_DATA);
+        if(barrelData == null){
+            LOGGER.warning("MeteringBarrelData is null!");
+            return;
+        }
+        String fluidName = barrelData.getFluidName();
+        String amountText;
+        if (barrelData.isEmpty()) {
+            tooltip.add(Component.translatable("item.create_measured_transfer.empty").withColor(0x33FFFF));
+        }else {
+            amountText = barrelData.getAmount() + " / " + barrelData.getCapacity() + " mB";
+            tooltip.add(Component.literal(fluidName).withColor(0x33FFFF).append(":").append(Component.literal(amountText)));
+        }
+
+        if(flag.hasShiftDown()){
+            tooltip.add(Component.translatable("item.create_measured_transfer.max_capacity").append(": " + MAX_CAPACITY + " mB"));
+        }else {
+            tooltip.add(Component.translatable("item.create_measured_transfer.hold_shift_for_more_info"));
+        }
     }
 
     private boolean canPlaceFluid(MeteringBarrelData barrelData) {

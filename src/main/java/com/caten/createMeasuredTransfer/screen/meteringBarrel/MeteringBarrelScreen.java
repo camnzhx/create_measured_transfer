@@ -6,6 +6,7 @@ import com.caten.createMeasuredTransfer.event.OpenMeteringBarrelScreenEvent;
 import com.caten.createMeasuredTransfer.item.MeteringBarrelItem;
 import com.caten.createMeasuredTransfer.packet.MeteringBarrelActionPacket;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -13,6 +14,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.gui.widget.ExtendedSlider;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.NotNull;
 
 /*
  * "Metering Barrel"的右键菜单实现
@@ -23,9 +25,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public class MeteringBarrelScreen extends Screen {
 
     private final ItemStack itemStack;
-    private final MeteringBarrelData barrelData;
-    private final int fluidAmount;
-    private final String fluidName;
+    private MeteringBarrelData barrelData;
 
     private final int capacity;
 
@@ -38,15 +38,13 @@ public class MeteringBarrelScreen extends Screen {
     }
 
     public MeteringBarrelScreen(ItemStack itemStack) {
-        super(Component.translatable("screen.create_measured_transfer.metering_barrel"));
+        super(Component.translatable("item.create_measured_transfer.metering_barrel"));
         this.itemStack = itemStack;
         this.barrelData = itemStack.get(ModDataComponents.METERING_BARREL_DATA);
         if(barrelData == null){
             throw new IllegalStateException("MeteringBarrelData is missing from the ItemStack");
         }
-        this.fluidAmount = barrelData.getAmount();
         this.capacity = barrelData.getCapacity();
-        this.fluidName =  barrelData.getFluidName();
     }
 
     @Override
@@ -66,7 +64,7 @@ public class MeteringBarrelScreen extends Screen {
                 Component.empty(),
                 Component.literal(" mB"),
                 0.0,
-                MeteringBarrelItem.MaxLiquidVolume,
+                MeteringBarrelItem.MAX_CAPACITY,
                 capacity,
                 true
         );
@@ -77,11 +75,25 @@ public class MeteringBarrelScreen extends Screen {
                         Component.translatable("button.create_measured_transfer.clear"),
                         button -> {
                             if(itemStack.getItem() instanceof MeteringBarrelItem){
+                                barrelData = barrelData.keepCapacityEmpty();
                                 PacketDistributor.sendToServer(MeteringBarrelActionPacket.clear());
                             }
                         })
                 .pos(50, 60)
                 .build());
+    }
+
+    @Override
+    public void render(@NotNull GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        renderInfo(guiGraphics);
+    }
+
+    private void renderInfo(GuiGraphics guiGraphics) {
+
+        Component fluidComponent = Component.literal(barrelData.getFluidName() + " : " + barrelData.getAmount() + " mB");
+
+        guiGraphics.drawString(Minecraft.getInstance().font, fluidComponent, 50, 100, 0x33FFFF);
     }
 
     private void createCapacityEditBox() {
@@ -99,7 +111,7 @@ public class MeteringBarrelScreen extends Screen {
             try {
                 int value = Integer.parseInt(input);
                 // 限制在0-4000之间（根据你的MaxLiquidVolume）
-                return value >= 0 && value <= MeteringBarrelItem.MaxLiquidVolume;
+                return value >= 0 && value <= MeteringBarrelItem.MAX_CAPACITY;
             } catch (NumberFormatException e) {
                 return false;
             }

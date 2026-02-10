@@ -78,6 +78,6 @@ public record MeteringBarrelData(FluidStack barrelFluid,int Capacity) {
         if (!(barrelFluid.isEmpty())) {
             return barrelFluid.getFluid().getFluidType().getDescription().getString();
         }
-        return Component.translatable("item.create_measured_transfer.metering_barrel.empty").getString();
+        return Component.translatable("item.create_measured_transfer.empty").getString();
     }
 }

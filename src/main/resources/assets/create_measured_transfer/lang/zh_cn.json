@@ -1,6 +1,7 @@
 {
   "item.create_measured_transfer.metering_barrel": "计量桶",
-  "screen.create_measured_transfer.metering_barrel": "计量桶",
   "button.create_measured_transfer.clear": "清空",
-  "item.create_measured_transfer.metering_barrel.empty": "空"
+  "item.create_measured_transfer.empty": "空",
+  "item.create_measured_transfer.max_capacity": "最大容量",
+  "item.create_measured_transfer.hold_shift_for_more_info": "按住Shift查看更多信息"
 }
