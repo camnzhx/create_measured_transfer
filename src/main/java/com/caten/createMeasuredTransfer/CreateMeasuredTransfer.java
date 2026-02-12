@@ -47,7 +47,7 @@ public class CreateMeasuredTransfer {
     @Mod(value = MOD_ID, dist = Dist.CLIENT)
     public static class OnlyClient {
         public OnlyClient() {
-            ModClientEvent.register();
+            ModClientEvents.register();
         }
     }
 }

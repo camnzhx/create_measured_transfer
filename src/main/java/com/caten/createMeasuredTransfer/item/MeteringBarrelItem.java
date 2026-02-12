@@ -1,6 +1,7 @@
 package com.caten.createMeasuredTransfer.item;
 
 import com.caten.createMeasuredTransfer.ModDataComponents;
+import com.caten.createMeasuredTransfer.ModItems;
 import com.caten.createMeasuredTransfer.component.MeteringBarrelData;
 import com.caten.createMeasuredTransfer.event.OpenMeteringBarrelScreenEvent;
 import net.minecraft.core.BlockPos;
@@ -32,6 +33,7 @@ import net.minecraft.world.level.material.LavaFluid;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.SoundAction;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -52,6 +54,24 @@ public class MeteringBarrelItem extends Item {
 
     public MeteringBarrelItem(Properties properties) {
         super(properties);
+    }
+
+    public static void regesterCapability(RegisterCapabilitiesEvent event){
+        event.registerItem(
+                Capabilities.FluidHandler.ITEM,
+                (itemstack, fluid) -> {
+                    if (itemstack.getItem() instanceof MeteringBarrelItem) {
+                        MeteringBarrelData barrelData = itemstack.get(ModDataComponents.METERING_BARREL_DATA);
+                        if(barrelData == null){
+                            LOGGER.warning("MeteringBarrelData is null!");
+                            return null;
+                        }
+                        return barrelData.getFluidHandler(itemstack);
+                    }
+                    return null;
+                },
+                ModItems.metering_barrel
+        );
     }
 
     @Override
