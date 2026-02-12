@@ -164,7 +164,7 @@ public class MeteringBarrelScreen extends Screen {
         protected void applyValue(){
             int value = (int) this.getValue();
             
-            // 更新编辑框显示（防递归）
+            // 更新编辑框显示
             if (linkedEditBox != null && !MeteringBarrelScreen.this.isUpdating) {
                 MeteringBarrelScreen.this.isUpdating = true;
                 try {
@@ -180,9 +180,14 @@ public class MeteringBarrelScreen extends Screen {
         
         @Override
         protected void onDrag(double mouseX, double mouseY, double dragX, double dragY) {
+            if(Screen.hasShiftDown()){
+                super.stepSize = 100;
+            }else{
+                super.stepSize = 1;
+            }
             super.onDrag(mouseX, mouseY, dragX, dragY);
-            
-            // 拖动时实时更新编辑框（防递归）
+
+            // 拖动时实时更新编辑框
             if (linkedEditBox != null && !MeteringBarrelScreen.this.isUpdating) {
                 MeteringBarrelScreen.this.isUpdating = true;
                 try {
@@ -191,6 +196,16 @@ public class MeteringBarrelScreen extends Screen {
                     MeteringBarrelScreen.this.isUpdating = false;
                 }
             }
+        }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            if(Screen.hasShiftDown()){
+                super.stepSize = 100;
+            }else{
+                super.stepSize = 1;
+            }
+            super.onClick(mouseX, mouseY);
         }
     }
 }
