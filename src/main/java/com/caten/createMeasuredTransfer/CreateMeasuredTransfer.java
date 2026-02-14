@@ -5,6 +5,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
@@ -34,8 +35,8 @@ public class CreateMeasuredTransfer {
         // Register mod packet payloads
         modEventBus.addListener(ModPackets::registerPayloads);
 
-//        // Register our mod's ModConfigSpec so that FML can create and load the config file for us
-//        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        // Register Config
+        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
     }
 
     private void addCreativeTab(BuildCreativeModeTabContentsEvent event) {

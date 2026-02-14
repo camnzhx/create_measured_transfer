@@ -50,7 +50,11 @@ public class MeteringBarrelItem extends Item {
     private static final Logger LOGGER = Logger.getLogger(MeteringBarrelItem.class.getName());
     private static final int A_BUCKET_VOLUME = FluidType.BUCKET_VOLUME;
 
-    public static final int MAX_CAPACITY = 4000;
+    public static int MAX_CAPACITY;
+
+    public static void initMaxCapacity(int capacity){
+        MAX_CAPACITY = capacity;
+    }
 
     public MeteringBarrelItem(Properties properties) {
         super(properties);
@@ -118,7 +122,6 @@ public class MeteringBarrelItem extends Item {
         //判断视线朝向结果
         if (blockhitresult.getType() == HitResult.Type.MISS) {          //没有命中任何方块,打开物品界面
             if(level.isClientSide() && player.isShiftKeyDown()){
-//                Minecraft.getInstance().setScreen(new com.caten.create_measured_transfer.Screen.MeteringBarrel.MeteringBarrelScreen(itemStack));
                 NeoForge.EVENT_BUS.post(new OpenMeteringBarrelScreenEvent(itemStack));
             }
             return InteractionResultHolder.pass(itemStack);
